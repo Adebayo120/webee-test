@@ -4,6 +4,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\MenuItem;
+use Illuminate\Support\Collection;
 use Illuminate\Routing\Controller as BaseController;
 
 class MenuController extends BaseController
@@ -92,7 +93,32 @@ class MenuController extends BaseController
     ]
      */
 
-    public function getMenuItems() {
-        throw new \Exception('implement in coding task 3');
+    private Collection $items;
+
+    public function getMenuItems(): Collection
+    {
+        $this->items = MenuItem::all()->groupBy('parent_id');
+
+        $item = $this->items->first()->first();
+
+        $this->constructItemWithChildren($item, $this->getItemChildren($item->id));
+        
+        return $this->items->first();
+    }
+
+    private function constructItemWithChildren(MenuItem $item, Collection $children) 
+    {
+        foreach ($children as $child) {
+            $this->constructItemWithChildren($child, $this->getItemChildren($child->id));
+        }
+
+        $item->children = $children;
+    }
+
+    private function getItemChildren(int $parentId): Collection
+    {
+        $children = $this->items->get($parentId);
+
+        return $children ? $children : collect();
     }
 }
